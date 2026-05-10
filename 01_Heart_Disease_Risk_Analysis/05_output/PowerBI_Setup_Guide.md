@@ -14,8 +14,6 @@ This folder contains everything how i build the Heart Disease Risk Analysis dash
 
 Open Power BI Desktop. On the home screen click **Get data → Text/CSV** and select `heart_disease_clean.csv`.
 
-In the preview that appears, click **Transform Data** (not Load) — this opens Power Query so you can check the column types before loading.
-
 ---
 
 ## Step 2 — Power Query (data types)

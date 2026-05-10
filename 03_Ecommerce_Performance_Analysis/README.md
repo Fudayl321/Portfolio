@@ -109,12 +109,12 @@ Six charts, all saved as PNG and embedded in the documentation:
 
 04_analysis/
     build_dashboard.R              full R script — cleaning, analysis, charts
-    p1_monthly_trend.png           
-    p2_top_categories.png          
-    p3_review_dist.png             
-    p4_delivery_box.png            
-    p5_payment_pie.png             
-    p6_ontime_state.png            
+    Monthly_Revenue_Trend.png           
+    Top_10_Categories_by_Revenue.png          
+    Customer_Review_Score_Distribution.png             
+    Delivery_Days_by_Category.png            
+    Revenue_by_Payment_Type.png             
+    OnTime_Delivery_by_State.png            
 ```
 
 ---
@@ -124,7 +124,7 @@ Six charts, all saved as PNG and embedded in the documentation:
 Make sure you have R installed with the required packages, then:
 
 ```bash
-cd dashboard_3_ecommerce
+cd 03_Ecommerce_Performance_Analysis
 Rscript 04_analysis/build_dashboard.R
 ```
 

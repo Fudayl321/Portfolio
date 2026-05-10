@@ -1,4 +1,4 @@
-# Dashboard 1 — Heart Disease Risk Analysis
+# Heart Disease Risk Analysis
 
 **Industry:** Healthcare  
 **Tools:** Python, SQL (SQLite), scikit-learn, Power BI  
@@ -55,7 +55,7 @@ Key queries I ran:
 
 **Risk profile by age group and gender** — grouped by `age_group` and `sex_label`, computed disease rate, average cholesterol, and average max heart rate per group.
 
-**Chest pain type analysis** — this one surprised me. Asymptomatic chest pain (cp=0) has the highest disease rate. Intuitively you'd expect "typical angina" to be the worst, but the data says otherwise. Turns out this is consistent with published clinical research — asymptomatic presentation is actually a red flag.
+**Chest pain type analysis** — this one surprised me. Asymptomatic chest pain (cp=0) has the highest disease rate. Intuitively you'd expect typical angina to be the worst, but the data says otherwise. Turns out this is consistent with published clinical research — asymptomatic presentation is actually a red flag.
 
 **Feature summary for modelling** — average ST depression, vessel count, and disease rate by exercise-induced angina group.
 
@@ -78,16 +78,13 @@ The feature importance result is clinically interesting — the imaging-based fe
 
 ---
 
-## Power BI file
+## Power BI dashboard
 
-The `.pbix` file in `05_output/` is a proper Power BI file with:
+Rather than include a `.pbix` file that won't open without the original data source path, I've written a full step-by-step guide covering every part of the build — data loading, Power Query types, all 7 DAX measures, the RiskScore calculated column, and the full report layout with visual types, field assignments, and colour codes.
 
-- **Power Query (M)** — connects to the clean CSV and applies the same transformations from the cleaning script
-- **DAX measures** — Total Patients, Disease Cases, Disease Rate %, Avg Cholesterol, Avg Max HR, High Risk Patients (those with RiskScore ≥ 5)
-- **Calculated column** — RiskScore based on vessel count, ST depression, and exercise angina
-- **Report layout** — bar charts, scatter, donut chart, KPI cards
+**→ [Power BI Setup Guide](./05_output/PowerBI_Setup_Guide.md)**
 
-Open it in Power BI Desktop. You'll need to update the data source path to wherever you've saved the CSV locally.
+If you follow it in Power BI Desktop it takes about 15 minutes to build.
 
 ---
 
@@ -95,22 +92,21 @@ Open it in Power BI Desktop. You'll need to update the data source path to where
 
 ```
 01_data/
-    heart_disease_raw.csv          raw dataset with nulls and invalid values intact
+    heart_disease_raw.csv              raw dataset — nulls and invalid values intact
 
 02_cleaning/
-    01_clean_data.py               full cleaning script — run this first
-    heart_disease_clean.csv        output of the cleaning script
-    eda_overview.png               EDA plots generated during cleaning
+    01_clean_data.py                   full cleaning script — run this first
+    heart_disease_clean.csv            clean output
+    eda_overview.png                   EDA plots generated during cleaning
 
 03_sql/
-    heart_disease.db               SQLite database with the clean data loaded
-    dor_queries.sql                SQL queries used for analysis
+    heart_disease.db                   SQLite database with clean data loaded
 
 04_analysis/
-    build_dashboard.py             Python analysis and chart generation
+    build_dashboard.py                 Python analysis, SQL queries, and charts
 
 05_output/
-    Healthcare_Dashboard.pbix      Power BI file — open in Power BI Desktop
+    PowerBI_Setup_Guide.md             step-by-step Power BI build instructions
 ```
 
 ---
@@ -118,9 +114,9 @@ Open it in Power BI Desktop. You'll need to update the data source path to where
 ## How to run
 
 ```bash
-cd dashboard_1_healthcare
+cd 01_Heart_Disease_Risk_Analysis
 python3 02_cleaning/01_clean_data.py
 python3 04_analysis/build_dashboard.py
 ```
 
-Then open `05_output/Healthcare_Dashboard.pbix` in Power BI Desktop.
+Then follow `05_output/PowerBI_Setup_Guide.md` in Power BI Desktop.

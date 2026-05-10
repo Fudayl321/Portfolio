@@ -1,0 +1,15 @@
+# Binary files — tell Git not to diff these as text
+*.pbix  binary
+*.docx  binary
+*.xlsx  binary
+*.db    binary
+*.png   binary
+
+# Ensure consistent line endings for scripts
+*.py    text eol=lf
+*.R     text eol=lf
+*.sql   text eol=lf
+*.md    text eol=lf
+*.html  text eol=lf
+*.json  text eol=lf
+*.csv   text eol=lf

@@ -1,0 +1,98 @@
+name: Deploy Portfolio to GitHub Pages
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Create index.html redirect
+        run: |
+          cat > index.html << 'EOF'
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="UTF-8">
+            <title>Fudayl Abdul Jalil — Data Analytics Portfolio</title>
+            <style>
+              body{font-family:Calibri,sans-serif;max-width:800px;margin:60px auto;padding:0 20px}
+              h1{color:#1A3C5E} h2{color:#217346;margin-top:30px}
+              a{color:#1A3C5E;text-decoration:none;font-weight:600}
+              a:hover{text-decoration:underline}
+              .card{background:#f8f9fa;border-left:4px solid #217346;
+                    padding:16px 20px;margin:12px 0;border-radius:4px}
+              .tag{background:#1A3C5E;color:white;border-radius:4px;
+                   padding:2px 8px;font-size:12px;margin-right:4px}
+            </style>
+          </head>
+          <body>
+            <h1>📊 Data Analytics Portfolio</h1>
+            <p><strong>Fudayl Abdul Jalil</strong> · Petaling Jaya, Malaysia ·
+            <a href="https://linkedin.com/in/fudayl-abdul-jalil">LinkedIn</a></p>
+
+            <h2>Dashboards</h2>
+
+            <div class="card">
+              <strong>🏥 Dashboard 1 — Healthcare Analytics</strong><br>
+              <span class="tag">Python</span><span class="tag">SQL</span>
+              <span class="tag">scikit-learn</span><span class="tag">Plotly</span><br>
+              <p style="margin:8px 0 4px">UCI Heart Disease dataset · Random Forest classifier ·
+              Interactive Plotly charts</p>
+              <a href="dashboard_1_healthcare/05_output/dashboard_healthcare.html">
+                → View Dashboard</a>
+            </div>
+
+            <div class="card">
+              <strong>🏦 Dashboard 2 — Banking & Marketing Analytics</strong><br>
+              <span class="tag">Python</span><span class="tag">SQL</span>
+              <span class="tag">Excel</span><span class="tag">Plotly</span><br>
+              <p style="margin:8px 0 4px">UCI Bank Marketing dataset · Excel workbook +
+              HTML report · Subscription conversion analysis</p>
+              <a href="dashboard_2_banking/05_output/bank_marketing_report.html">
+                → View HTML Report</a> &nbsp;|&nbsp;
+              <a href="dashboard_2_banking/05_output/bank_marketing_dashboard.xlsx">
+                → Download Excel</a>
+            </div>
+
+            <div class="card">
+              <strong>🛒 Dashboard 3 — E-Commerce Analytics</strong><br>
+              <span class="tag">R</span><span class="tag">ggplot2</span>
+              <span class="tag">dplyr</span><span class="tag">Statistics</span><br>
+              <p style="margin:8px 0 4px">Kaggle Olist dataset · ggplot2 charts ·
+              Kruskal-Wallis, t-test, Spearman correlation</p>
+              <a href="dashboard_3_ecommerce/05_output/ecommerce_dashboard.html">
+                → View Dashboard</a>
+            </div>
+          </body>
+          </html>
+          EOF
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

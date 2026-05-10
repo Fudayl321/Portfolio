@@ -119,7 +119,7 @@ Everything is formatted — colours, borders, header styles. I built it with `op
 ## How to run
 
 ```bash
-cd dashboard_2_banking
+cd 02_Bank_Marketing_Analysis
 python3 02_cleaning/build_all.py
 ```
 

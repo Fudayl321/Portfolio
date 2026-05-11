@@ -59,7 +59,6 @@ Key queries I ran:
 
 **Feature summary for modelling** — average ST depression, vessel count, and disease rate by exercise-induced angina group.
 
-The SQL files are in `03_sql/` if you want to run them yourself.
 
 ---
 
@@ -99,8 +98,6 @@ If you follow it in Power BI Desktop it takes about 15 minutes to build.
     heart_disease_clean.csv            clean output
     eda_overview.png                   EDA plots generated during cleaning
 
-03_sql/
-    heart_disease.db                   SQLite database with clean data loaded
 
 04_analysis/
     build_dashboard.py                 Python analysis, SQL queries, and charts

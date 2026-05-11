@@ -2,7 +2,7 @@
 Dashboard 1 — Healthcare Analytics
 Step 4: Interactive Dashboard (Power BI equivalent)
 =====================================================
-Tools   : Python, SQL (sqlite3), Plotly, pandas, scikit-learn
+Tools   : Python, pandas, scikit-learn, Plotly
 Dataset : Heart Disease (UCI ML Repository)
 Author  : Fudayl Abdul Jalil
 
@@ -12,7 +12,7 @@ shareable as a GitHub Pages link.
 
 import pandas as pd
 import numpy as np
-import sqlite3
+
 import plotly.graph_objects as go
 import plotly.express as px
 from plotly.subplots import make_subplots
@@ -25,73 +25,57 @@ import warnings
 warnings.filterwarnings('ignore')
 
 CLEAN = "02_cleaning/heart_disease_clean.csv"
-DB    = "03_sql/heart_disease.db"
 OUT   = "05_output/dashboard_healthcare.html"
 
-os.makedirs("03_sql", exist_ok=True)
 os.makedirs("05_output", exist_ok=True)
 
 df = pd.read_csv(CLEAN)
 
-# ── BUILD SQLITE DB + RUN SQL QUERIES ────────────────────────
-conn = sqlite3.connect(DB)
-df.to_sql('heart', conn, if_exists='replace', index=False)
+# ── AGGREGATIONS — pandas groupby, clean CSV loaded directly ──
+# Same results as the SQL queries, no database step needed.
+# The clean CSV goes straight into Power BI the same way.
 
-# SQL Query 1 — Risk profile by age group and gender
-risk_sql = """
-SELECT age_group, sex_label,
-       COUNT(*) as total,
-       SUM(target) as disease_count,
-       ROUND(AVG(target)*100, 1) as disease_rate_pct,
-       ROUND(AVG(chol), 1) as avg_chol,
-       ROUND(AVG(thalach), 1) as avg_max_hr,
-       ROUND(AVG(trestbps), 1) as avg_bp
-FROM heart
-GROUP BY age_group, sex_label
-ORDER BY age_group, sex_label
-"""
-risk_df = pd.read_sql(risk_sql, conn)
+risk_df = (df.groupby(['age_group','sex_label'])
+           .agg(total=('target','count'),
+                disease_count=('target','sum'),
+                avg_chol=('chol','mean'),
+                avg_max_hr=('thalach','mean'),
+                avg_bp=('trestbps','mean'))
+           .reset_index()
+           .assign(disease_rate_pct=lambda x: (x.disease_count/x.total*100).round(1),
+                   avg_chol=lambda x: x.avg_chol.round(1),
+                   avg_max_hr=lambda x: x.avg_max_hr.round(1),
+                   avg_bp=lambda x: x.avg_bp.round(1))
+           .sort_values(['age_group','sex_label']))
 
-# SQL Query 2 — Chest pain type analysis
-cp_sql = """
-SELECT cp_label,
-       COUNT(*) as total,
-       SUM(target) as disease_count,
-       ROUND(AVG(target)*100,1) as disease_rate_pct,
-       ROUND(AVG(oldpeak),2) as avg_st_depression
-FROM heart
-GROUP BY cp_label
-ORDER BY disease_rate_pct DESC
-"""
-cp_df = pd.read_sql(cp_sql, conn)
+cp_df = (df.groupby('cp_label')
+         .agg(total=('target','count'),
+              disease_count=('target','sum'),
+              avg_st_depression=('oldpeak','mean'))
+         .reset_index()
+         .assign(disease_rate_pct=lambda x: (x.disease_count/x.total*100).round(1),
+                 avg_st_depression=lambda x: x.avg_st_depression.round(2))
+         .sort_values('disease_rate_pct', ascending=False))
 
-# SQL Query 3 — Key metric summary
-summary_sql = """
-SELECT
-    COUNT(*) as total_patients,
-    SUM(target) as disease_cases,
-    ROUND(AVG(target)*100,1) as prevalence_pct,
-    ROUND(AVG(age),1) as avg_age,
-    ROUND(AVG(chol),0) as avg_chol,
-    ROUND(AVG(thalach),0) as avg_max_hr,
-    SUM(CASE WHEN sex_label='Male' THEN 1 ELSE 0 END) as male_count,
-    SUM(CASE WHEN sex_label='Female' THEN 1 ELSE 0 END) as female_count
-FROM heart
-"""
-summary = pd.read_sql(summary_sql, conn).iloc[0]
+summary = pd.Series({
+    'total_patients':  len(df),
+    'disease_cases':   df['target'].sum(),
+    'prevalence_pct':  round(df['target'].mean()*100, 1),
+    'avg_age':         round(df['age'].mean(), 1),
+    'avg_chol':        round(df['chol'].mean(), 0),
+    'avg_max_hr':      round(df['thalach'].mean(), 0),
+    'male_count':      (df['sex_label']=='Male').sum(),
+    'female_count':    (df['sex_label']=='Female').sum(),
+})
 
-# SQL Query 4 — Feature importance via SQL grouping
-feat_sql = """
-SELECT
-  exang,
-  ROUND(AVG(ca),2) as avg_vessels,
-  ROUND(AVG(oldpeak),2) as avg_st_dep,
-  ROUND(AVG(target)*100,1) as disease_rate
-FROM heart
-GROUP BY exang
-"""
-feat_df = pd.read_sql(feat_sql, conn)
-conn.close()
+feat_df = (df.groupby('exang')
+           .agg(avg_vessels=('ca','mean'),
+                avg_st_dep=('oldpeak','mean'),
+                disease_rate=('target','mean'))
+           .reset_index()
+           .assign(avg_vessels=lambda x: x.avg_vessels.round(2),
+                   avg_st_dep=lambda x: x.avg_st_dep.round(2),
+                   disease_rate=lambda x: (x.disease_rate*100).round(1)))
 
 # ── MACHINE LEARNING — RANDOM FOREST ──────────────────────────
 features = ['age','sex','cp','trestbps','chol','fbs','restecg',

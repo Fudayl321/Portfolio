@@ -11,7 +11,18 @@ This folder contains everything you need to build the Heart Disease Risk Analysi
 
 ---
 
-## Step 1 — Load the data
+## Step 1 — Run the cleaning script first
+
+Before opening Power BI, run the Python cleaning script:
+
+```bash
+cd 01_Heart_Disease_Risk_Analysis
+python3 02_cleaning/01_clean_data.py
+```
+
+This produces `02_cleaning/heart_disease_clean.csv`. Load that file directly into Power BI — no database needed.
+
+## Step 2 — Load the CSV into Power BI
 
 Open Power BI Desktop. On the home screen click **Get data → Text/CSV** and select `heart_disease_clean.csv`.
 
@@ -19,7 +30,7 @@ In the preview that appears, click **Transform Data** (not Load) — this opens 
 
 ---
 
-## Step 2 — Power Query (data types)
+## Step 3 — Power Query (data types)
 
 In Power Query, set these column types manually. Power BI sometimes guesses wrong on columns that look numeric but are actually categories.
 
@@ -45,7 +56,7 @@ Click **Close & Apply** when done.
 
 ---
 
-## Step 3 — DAX measures
+## Step 4 — DAX measures
 
 In the **Data** pane on the right, right-click the table name and choose **New measure**. Add these one by one.
 
@@ -98,7 +109,7 @@ CALCULATE(
 
 ---
 
-## Step 4 — Calculated column
+## Step 5 — Calculated column
 
 Right-click the table → **New column**.
 
@@ -113,7 +124,7 @@ heart_disease_clean[ca] * 2
 
 ---
 
-## Step 5 — Report layout
+## Step 6 — Report layout
 
 The dashboard has one page. Build it top to bottom.
 
@@ -165,7 +176,7 @@ Format each card: font size 28, bold, colour `#1A3C5E` (dark navy). Label text b
 
 ---
 
-## Step 6 — Theme colours
+## Step 7 — Theme colours
 
 In the **View** tab → **Themes** → **Customize current theme**. Set:
 
@@ -177,7 +188,7 @@ In the **View** tab → **Themes** → **Customize current theme**. Set:
 
 ---
 
-## Step 7 — Page name
+## Step 8 — Page name
 
 Double-click the page tab at the bottom and rename it to **Heart Disease Risk Analysis**.
 

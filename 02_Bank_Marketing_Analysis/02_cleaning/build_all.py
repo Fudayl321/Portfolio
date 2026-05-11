@@ -4,7 +4,7 @@ Steps 2–5: Clean Data + Build Excel Dashboard
 ===============================================
 Dataset : Bank Marketing (UCI ML Repository)
 Source  : https://archive.ics.uci.edu/dataset/222/bank+marketing
-Tools   : Python, pandas, SQL (sqlite3), openpyxl, XlsxWriter
+Tools   : Python, pandas, openpyxl
 Author  : Fudayl Abdul Jalil
 
 Output  : 05_output/bank_marketing_dashboard.xlsx
@@ -13,7 +13,7 @@ Output  : 05_output/bank_marketing_dashboard.xlsx
 
 import pandas as pd
 import numpy as np
-import sqlite3, os, warnings
+import os, warnings
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -101,59 +101,61 @@ print(f"  ✓ Pipeline complete")
 df_c.to_csv("02_cleaning/bank_marketing_clean.csv", index=False)
 
 # ══════════════════════════════════════════════════════════════
-# PART 2 — SQL QUERIES
+# PART 2 — AGGREGATIONS (pandas groupby — clean CSV goes straight
+#           into Power BI, no database needed)
 # ══════════════════════════════════════════════════════════════
-conn = sqlite3.connect("03_sql/bank_marketing.db")
-df_c.to_sql('bank', conn, if_exists='replace', index=False)
 
-sub_by_job = pd.read_sql("""
-    SELECT job,
-           COUNT(*) total,
-           SUM(subscribed) subscriptions,
-           ROUND(AVG(subscribed)*100,1) sub_rate_pct,
-           ROUND(AVG(duration_min),1) avg_call_min
-    FROM bank GROUP BY job ORDER BY sub_rate_pct DESC""", conn)
+sub_by_job = (df_c.groupby('job')
+              .agg(total=('subscribed','count'),
+                   subscriptions=('subscribed','sum'),
+                   avg_call_min=('duration_min','mean'))
+              .reset_index()
+              .assign(sub_rate_pct=lambda x: (x.subscriptions/x.total*100).round(1),
+                      avg_call_min=lambda x: x.avg_call_min.round(1))
+              .sort_values('sub_rate_pct', ascending=False))
 
-sub_by_month = pd.read_sql("""
-    SELECT month, month_num,
-           COUNT(*) total_contacts,
-           SUM(subscribed) subscriptions,
-           ROUND(AVG(subscribed)*100,1) sub_rate_pct
-    FROM bank GROUP BY month, month_num ORDER BY month_num""", conn)
+sub_by_month = (df_c.groupby(['month','month_num'])
+                .agg(total_contacts=('subscribed','count'),
+                     subscriptions=('subscribed','sum'))
+                .reset_index()
+                .assign(sub_rate_pct=lambda x: (x.subscriptions/x.total_contacts*100).round(1))
+                .sort_values('month_num'))
 
-age_analysis = pd.read_sql("""
-    SELECT age_group,
-           COUNT(*) total,
-           SUM(subscribed) subscriptions,
-           ROUND(AVG(subscribed)*100,1) sub_rate_pct,
-           ROUND(AVG(duration_min),1) avg_call_min,
-           ROUND(AVG(euribor3m),2) avg_euribor
-    FROM bank GROUP BY age_group ORDER BY age_group""", conn)
+age_analysis = (df_c.groupby('age_group')
+                .agg(total=('subscribed','count'),
+                     subscriptions=('subscribed','sum'),
+                     avg_call_min=('duration_min','mean'),
+                     avg_euribor=('euribor3m','mean'))
+                .reset_index()
+                .assign(sub_rate_pct=lambda x: (x.subscriptions/x.total*100).round(1),
+                        avg_call_min=lambda x: x.avg_call_min.round(1),
+                        avg_euribor=lambda x: x.avg_euribor.round(2))
+                .sort_values('age_group'))
 
-outcome_analysis = pd.read_sql("""
-    SELECT poutcome,
-           COUNT(*) total,
-           SUM(subscribed) subscriptions,
-           ROUND(AVG(subscribed)*100,1) sub_rate_pct
-    FROM bank GROUP BY poutcome ORDER BY sub_rate_pct DESC""", conn)
+outcome_analysis = (df_c.groupby('poutcome')
+                    .agg(total=('subscribed','count'),
+                         subscriptions=('subscribed','sum'))
+                    .reset_index()
+                    .assign(sub_rate_pct=lambda x: (x.subscriptions/x.total*100).round(1))
+                    .sort_values('sub_rate_pct', ascending=False))
 
-education_analysis = pd.read_sql("""
-    SELECT education,
-           COUNT(*) total,
-           SUM(subscribed) subscriptions,
-           ROUND(AVG(subscribed)*100,1) sub_rate_pct,
-           ROUND(AVG(age),1) avg_age
-    FROM bank GROUP BY education ORDER BY sub_rate_pct DESC""", conn)
+education_analysis = (df_c.groupby('education')
+                      .agg(total=('subscribed','count'),
+                           subscriptions=('subscribed','sum'),
+                           avg_age=('age','mean'))
+                      .reset_index()
+                      .assign(sub_rate_pct=lambda x: (x.subscriptions/x.total*100).round(1),
+                              avg_age=lambda x: x.avg_age.round(1))
+                      .sort_values('sub_rate_pct', ascending=False))
 
-summary_row = pd.read_sql("""
-    SELECT COUNT(*) total, SUM(subscribed) subs,
-           ROUND(AVG(subscribed)*100,1) sub_pct,
-           ROUND(AVG(age),1) avg_age,
-           ROUND(AVG(duration_min),1) avg_call,
-           ROUND(AVG(campaign),1) avg_campaign_contacts
-    FROM bank""", conn).iloc[0]
-
-conn.close()
+summary_row = pd.Series({
+    'total':                  len(df_c),
+    'subs':                   df_c['subscribed'].sum(),
+    'sub_pct':                round(df_c['subscribed'].mean()*100, 1),
+    'avg_age':                round(df_c['age'].mean(), 1),
+    'avg_call':               round(df_c['duration_min'].mean(), 1),
+    'avg_campaign_contacts':  round(df_c['campaign'].mean(), 1),
+})
 
 # ══════════════════════════════════════════════════════════════
 # PART 3 — EXCEL DASHBOARD

@@ -22,7 +22,7 @@ Each folder has its own README that walks through what I did and why.
 
 ## Skills covered across all three
 
-- **SQL** — used in every project for aggregations, grouping, and joins before the data goes anywhere else
+- **SQL** — available for ad-hoc querying if needed, but the main workflow goes CSV → Python cleaning → Power BI directly
 - **Python (pandas, matplotlib, scikit-learn)** — cleaning, EDA, and machine learning in projects 1 and 2
 - **R (ggplot2, dplyr, tidyr, lubridate)** — full analysis pipeline in project 3
 - **Excel (openpyxl)** — formatted multi-sheet workbook with charts and conditional formatting in project 2

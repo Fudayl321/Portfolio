@@ -2,7 +2,7 @@
 
 Hey, thanks for stopping by.
 
-I'm Fudayl — currently working as a Customer Success Manager at a fintech company while finishing my degree in Information Systems at UiTM. My actual hands-on experience with data analytics comes from my internship at Nestlé Malaysia, where I built the Distribution Operation Report (DOR) — a Power BI solution used by all Nestlé distributors across Malaysia to track sales performance from company-level KPIs down to individual salesman targets.
+I'm Fudayl — currently working as a Customer Success Manager at a fintech company and my degree in Information Systems at UiTM. My actual hands-on experience with data analytics comes from my internship at Nestlé Malaysia, where I built the Distribution Operation Report (DOR) — a Power BI solution used by all Nestlé distributors across Malaysia to track sales performance from company-level KPIs down to individual salesman targets.
 
 I put this portfolio together to show what I can actually do with data, since I don't have a long list of certifications to back me up yet. Each project here follows the same structure — I find a real public dataset, document what's wrong with it, clean it with a Python or R script, and build something visual out of it.
 

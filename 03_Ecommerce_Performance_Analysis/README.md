@@ -1,4 +1,4 @@
-# Dashboard 3 — Brazilian E-Commerce Analysis
+# E-Commerce Performance Analysis
 
 **Industry:** Retail / E-Commerce  
 **Tools:** R, ggplot2, dplyr, lubridate, tidyr, scales  
@@ -7,128 +7,136 @@
 
 ---
 
-## Why this dataset
+## Workflow
 
-The Olist dataset is one of the more interesting public e-commerce datasets out there. It covers real orders from a Brazilian marketplace platform between October 2016 and August 2018 — around 100,000 orders in the full version, 8,000 in this subset. What makes it useful for analysis is the combination of transaction data, delivery performance, review scores, and geographic information all in one place.
+```
+01_data/ecommerce_raw.csv
+  → 04_analysis/build_dashboard.R       (R — cleaning, aggregation, statistical tests, charts)
+  → 02_cleaning/ecommerce_clean.csv
+  → 04_analysis/*.png                   (6 ggplot2 charts saved as PNG)
+```
 
-I also wanted to do at least one project entirely in R. Most of my work has been in Python, but R is worth showing — particularly `dplyr` for data wrangling and `ggplot2` for visualisation, since those are standard tools in analytics roles.
+Everything runs inside a single R script. The cleaning, analysis, and chart generation all happen in one pass. No separate cleaning step needed.
 
 ---
 
-## What I found when I loaded the data
+## Why this dataset
 
-The raw file had a few issues worth documenting:
+The Olist dataset covers real orders from a Brazilian e-commerce marketplace between October 2016 and August 2018. It has transaction data, delivery performance, customer review scores, payment method, and the customer's state — all in one file. That combination makes it useful for looking at how operations (delivery timing) connect to outcomes (review scores) across different geographies and product types.
 
-**Invalid prices:** 15 rows where `price` was -99. Not a null, an actual wrong value. Negative prices don't exist.
+This project is also the R-only one. Most of my work is Python, so I wanted to show the same workflow — load, clean, analyse, visualise — done entirely in R with dplyr and ggplot2.
 
-**Impossible delivery times:** 10 rows where `delivery_days` was 0. An order can't be delivered in zero days from shipping — these are recording errors.
+---
+
+## What I found in the raw data
+
+**Invalid prices:** 15 rows where `price` = -99. Not a null — an actual wrong value.
+
+**Impossible delivery times:** 10 rows where `delivery_days` = 0. Can't be delivered the same day it ships.
 
 **Nulls:**
 - `price` — 80 nulls
-- `delivery_days` — 40 nulls (a mix of genuine missings and the ones I just set to NA after removing the zeros)
+- `delivery_days` — 40 nulls (includes the 10 set to NA after removing the zeros)
 - `review_score` — 40 nulls
-
-Not a massive amount, but enough that you need a strategy rather than just dropping everything.
 
 ---
 
-## Cleaning decisions and why
+## Cleaning decisions
 
-**Negative prices** — removed. There's no plausible explanation for a -99 price that would make it worth keeping.
+**Negative prices** — removed. No plausible explanation for a -99 value.
 
-**Zero delivery days** — set to NA first, then imputed. I didn't drop them because delivery time is an important variable and I didn't want to lose those orders entirely.
+**Zero delivery days** — set to NA first, then imputed. The orders themselves are valid, just the delivery time is wrong. Setting to NA means they get imputed sensibly rather than being dropped.
 
-**Price nulls** — imputed with the median price within each product category. Electronics prices and clothing prices are completely different scales, so using a single global median would be misleading. Category-level median is a much better estimate.
+**Price nulls** — imputed with median per product category. Electronics and clothing have completely different price scales, so a single global median would push imputed values in the wrong direction for most categories.
 
-**Delivery days nulls** — same approach, category-level median. A furniture item and a book will have very different typical delivery times.
+**Delivery days nulls** — same logic, category-level median. Furniture and books have very different typical delivery timelines.
 
-**Review score nulls** — global median. Review score doesn't vary as dramatically across categories as price does, so a global median is fine here.
+**Review score nulls** — global median. Review scores don't vary enough by category to make group-level imputation worth the effort here.
 
-After cleaning: **7,985 rows** (15 rows removed for negative prices), all nulls resolved.
+After cleaning: **7,985 rows** — 15 removed for negative prices, all nulls resolved.
 
 ---
 
 ## Feature engineering
 
-- `year_month` — formatted as `YYYY-MM` for grouping in trend analysis
-- `year`, `month`, `quarter` — extracted from `order_date` using `lubridate`
-- `freight_pct` — freight value as a percentage of total order value. Useful for identifying categories where shipping is eating into margins
-- `high_value` — binary flag for orders in the top 25th percentile by value
+- `year_month` — `YYYY-MM` format for time series grouping
+- `year`, `month`, `quarter` — extracted with `lubridate`
+- `freight_pct` — freight as a percentage of total order value
+- `high_value` — 1 if order value is in the top 25th percentile
 
 ---
 
 ## Statistical tests
 
-This is the part I wanted to include specifically because most dashboards just show charts. Adding statistical tests shows you're thinking about whether the patterns you see are actually real or just noise.
+Charts show patterns, but statistical tests tell you whether those patterns are real or just noise. Three tests were run:
 
-**Kruskal-Wallis test — review score by payment type**  
-Non-parametric test because review scores are ordinal (1-5), not truly continuous. Tests whether review scores differ significantly across credit card, boleto, voucher, and debit card users.  
-Result is in the dashboard — if p < 0.05, there's a statistically significant difference.
+**Kruskal-Wallis — review score by payment type**  
+Non-parametric test because review scores are ordinal (1-5), not continuous. Tests whether scores differ significantly across credit card, boleto, voucher, and debit card users. If p < 0.05, at least one payment group rates differently from the others.
 
-**Independent t-test — delivery time by order value tier**  
-Tests whether high-value orders (top quartile) take meaningfully longer to deliver than standard orders. The hypothesis is that heavier or bulkier items tend to be higher value and might take longer to ship.
+**Independent t-test — delivery days by order value tier**  
+Tests whether high-value orders take significantly longer to deliver than standard ones. Hypothesis: bulkier, heavier items tend to cost more and may take longer to ship.
 
 **Spearman correlation — price vs review score**  
-Spearman rather than Pearson because price is right-skewed and review score is ordinal. Tests whether more expensive items tend to get better or worse reviews.
+Spearman instead of Pearson because price is right-skewed and review score is ordinal. Tests whether more expensive items get systematically better or worse ratings.
 
 ---
 
 ## What the analysis found
 
-**Revenue trend** — clear growth from late 2016 through mid-2018, with a dip around early 2018. Electronics is the top revenue category but not by as much as you might expect. Clothing, home appliances, and sports aren't far behind.
+**Revenue** — clear growth from late 2016 through mid-2018. Electronics leads on revenue but the gap to clothing, home appliances, and sports is smaller than expected.
 
-**Delivery performance** — on-time delivery rate varies by state. São Paulo (SP) and Rio de Janeiro (RJ) have the highest order volumes but aren't necessarily the best on delivery timing, which makes sense given the logistics complexity of the largest cities.
+**Delivery** — on-time rate varies by state. The highest-volume states (SP, RJ) aren't necessarily the best on delivery, which makes sense — larger cities have more complex last-mile logistics.
 
-**Review scores** — the distribution is heavily skewed toward 5 stars. Either customers are genuinely happy, or unhappy customers don't bother reviewing. The 1-star reviews tend to cluster around late deliveries, which suggests delivery experience is the main driver of dissatisfaction.
+**Review scores** — heavily skewed toward 5 stars. The 1-star reviews cluster around late deliveries, suggesting delivery experience drives dissatisfaction more than product quality.
 
-**Freight as % of order** — this metric was interesting. For lower-price categories, freight sometimes represents 25-30% of total order value. That's a real business problem — customers in remote states are paying a disproportionate share of their order value just on shipping.
-
----
-
-## Charts produced (ggplot2)
-
-Six charts, all saved as PNG and embedded in the documentation:
-
-1. Monthly revenue trend — area chart with line overlay
-2. Top 10 categories by revenue — horizontal bar
-3. Review score distribution — bar chart with percentage labels
-4. Delivery days by category — boxplot (shows median and spread, not just averages)
-5. Revenue by payment type — pie chart
-6. On-time delivery % by state (top 10) — horizontal bar with colour gradient
+**Freight as % of order** — for lower-price categories, freight can be 25-30% of the total order value. That's a real margin problem, and for customers in remote states it's disproportionately high.
 
 ---
 
-## Files in this folder
+## Charts
+
+Six ggplot2 charts saved as PNG in `04_analysis/`:
+
+| File | Chart type | What it shows |
+|------|-----------|---------------|
+| `Monthly_Revenue_Trend.png` | Area + line | Revenue growth over time |
+| `Top_10_Categories_by_Revenue.png` | Horizontal bar | Category revenue ranking |
+| `Customer_Review_Score_Distribution.png` | Bar | 1–5 star breakdown with percentages |
+| `Delivery_Days_by_Category.png` | Boxplot | Median and spread of delivery time per category |
+| `Revenue_by_Payment_Type.png` | Pie | Revenue share by payment method |
+| `OnTime_Delivery_by_State.png` | Horizontal bar | On-time % for top 10 states by volume |
+
+---
+
+## Files
 
 ```
 01_data/
-    ecommerce_raw.csv              raw dataset with nulls and invalid values
+    ecommerce_raw.csv                        raw dataset — invalid values and nulls intact
 
 02_cleaning/
-    ecommerce_clean.csv            output after cleaning
+    ecommerce_clean.csv                      clean output after the R script runs
 
 04_analysis/
-    build_dashboard.R              full R script — cleaning, analysis, charts
-    Monthly_Revenue_Trend.png           
-    Top_10_Categories_by_Revenue.png          
-    Customer_Review_Score_Distribution.png             
-    Delivery_Days_by_Category.png            
-    Revenue_by_Payment_Type.png             
-    OnTime_Delivery_by_State.png            
+    build_dashboard.R                        single R script — run this to do everything
+    Monthly_Revenue_Trend.png
+    Top_10_Categories_by_Revenue.png
+    Customer_Review_Score_Distribution.png
+    Delivery_Days_by_Category.png
+    Revenue_by_Payment_Type.png
+    OnTime_Delivery_by_State.png
 ```
 
 ---
 
 ## How to run
 
-Make sure you have R installed with the required packages, then:
-
 ```bash
 cd 03_Ecommerce_Performance_Analysis
 Rscript 04_analysis/build_dashboard.R
 ```
 
-Required packages:
+Required R packages:
 ```r
 install.packages(c("ggplot2", "dplyr", "tidyr", "lubridate", "scales", "viridis", "jsonlite", "gridExtra"))
 ```

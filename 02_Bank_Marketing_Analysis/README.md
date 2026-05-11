@@ -1,117 +1,126 @@
-# Dashboard 2 — Bank Marketing Campaign Analysis
+# Bank Marketing Campaign Analysis
 
 **Industry:** Finance / Banking  
-**Tools:** Python, SQL (SQLite), Excel (openpyxl)  
+**Tools:** Python, pandas, Excel (openpyxl)  
 **Dataset:** UCI Bank Marketing — Portuguese bank telemarketing campaign  
 **Source:** https://archive.ics.uci.edu/dataset/222/bank+marketing  
 **Kaggle mirror:** https://www.kaggle.com/datasets/henriqueyamahata/bank-marketing
 
 ---
 
-## Why this dataset
+## Workflow
 
-This is a real dataset from a Portuguese bank that ran a phone-based marketing campaign between May 2008 and November 2010. The goal was to get clients to subscribe to a term deposit. It has 4,100+ records and 20 features — a mix of client demographics, contact history, and macroeconomic indicators like the Euribor rate and employment variation.
+```
+01_data/bank_marketing_raw.csv
+  → 02_cleaning/build_all.py           (Python — clean, aggregate with pandas, build Excel)
+  → 02_cleaning/bank_marketing_clean.csv
+  → 05_output/bank_marketing_dashboard.xlsx    (open in Excel or Google Sheets)
+```
 
-What I liked about it for a portfolio project is that it's the kind of data you'd actually see in a financial services job. The conversion rate is low (around 11–17% depending on the subset), which is realistic — most campaigns don't convert well — and that makes the analysis more interesting than a dataset where half the outcomes are positive.
+The same script handles cleaning, aggregation, and Excel generation in one run. The clean CSV is also saved separately in case you want to load it into Power BI or do further analysis.
 
 ---
 
-## What I found when I loaded the data
+## Why this dataset
 
-First thing I always do is check for duplicates and nulls before anything else.
+This covers a real telemarketing campaign run by a Portuguese bank between 2008 and 2010. The target is whether a client subscribed to a term deposit — and the subscription rate is low, around 16-17%, which is realistic. Most campaigns don't convert well, so the analysis is more useful than a dataset where the outcome is 50/50.
 
-**Duplicates:** 25 exact duplicate rows. Small number but worth removing — they'd skew any count-based metric.
+The dataset also has an economic context built in — Euribor rates, employment variation, consumer confidence — which means you can look at whether macro conditions affected conversion alongside client-level factors.
+
+---
+
+## What I found in the raw data
+
+**Duplicates:** 25 exact duplicate rows — removed completely.
 
 **Nulls:**
 - `age` — 60 nulls
 - `duration` — 30 nulls
 
 **Categorical issues:**
-- `job` had 65 entries coded as `'unknown'` — not technically a null but not useful either
+- `job` had 65 entries coded as `'unknown'`
 
-One important note I flagged early: the `duration` column (how long the call lasted) is **data leakage**. You only know the call duration after the call ends, which means after you already know the outcome. I kept it in the dataset for EDA purposes but explicitly excluded it from any modelling. This kind of thing matters and I wanted to document it clearly.
+**Data leakage flag:** the `duration` column (call length in seconds) is leakage — you only know how long the call was after it ends, which means after you already know the outcome. It's kept for EDA but flagged clearly and excluded from any modelling.
 
 ---
 
-## Cleaning decisions and why
+## Cleaning decisions
 
-**Duplicates** — dropped all 25. No reason to keep exact copies.
+**Duplicates** — dropped. No reason to keep exact copies.
 
-**Age nulls** — imputed using median per job group, not global median. A 22-year-old student and a 58-year-old manager have very different typical ages. Using the job group median preserves that demographic signal better than throwing everyone together.
+**Age nulls** — imputed with median per job group. A student and a manager have very different age distributions. Using the job group median keeps that signal intact rather than pulling everyone toward the same number.
 
-**Duration nulls** — global median. Less than 1% missing and since it's excluded from modelling anyway, precision here doesn't matter much.
+**Duration nulls** — global median. Less than 1% missing and excluded from modelling anyway, so precision here doesn't matter.
 
-**Unknown job** — recoded using the most common job type within each education level. Not perfect, but better than leaving it as 'unknown' since it adds noise to any job-level grouping.
+**Unknown job** — recoded to the most common job within each education level. Not a perfect fix, but better than leaving it as 'unknown' which would pollute job-level analysis.
 
-After cleaning: **4,119 rows, 27 columns** (including the derived columns I added).
+After cleaning: **4,119 rows, 27 columns** — the extra columns are engineered features added after cleaning.
 
 ---
 
 ## Feature engineering
 
-A few new columns I created that made the analysis more useful:
+New columns added to the clean dataset:
 
-- `age_group` — binned into `<25`, `25-34`, `35-44`, `45-54`, `55-64`, `65+` for group-level comparisons
-- `contacted_before` — binary flag, 1 if `pdays` is not 999 (999 means they were never contacted in a previous campaign)
-- `duration_min` — converted call duration from seconds to minutes, easier to read
-- `high_euribor` — flag for whether the Euribor 3-month rate was above 3 (a rough indicator of tighter economic conditions)
+- `age_group` — binned into `<25`, `25-34`, `35-44`, `45-54`, `55-64`, `65+`
+- `contacted_before` — 1 if `pdays` ≠ 999 (999 means never contacted in a previous campaign)
+- `duration_min` — call duration converted from seconds to minutes
+- `high_euribor` — 1 if Euribor 3-month rate > 3
+- `subscribed` — binary version of the `y` target column (1 = yes, 0 = no)
 
 ---
 
-## SQL queries
+## Aggregations
 
-Same approach as project 1 — load into SQLite, aggregate with SQL, then pass to Python for visualisation.
+All aggregations are done with pandas `groupby` — no database needed. The clean CSV loads directly into whatever tool you want to use next.
 
-The queries I found most useful:
-
-**Subscription rate by job** — big variation here. Students and retirees convert at significantly higher rates than blue-collar workers, even with smaller sample sizes.
-
-**Monthly campaign performance** — May has the most contacts by far, but March, September, and December have the best conversion rates. High volume ≠ high quality.
-
-**Impact of previous campaign outcome** — this was the clearest finding in the whole dataset. If someone subscribed in a previous campaign, they convert at 4-5x the baseline rate. If they were contacted before but didn't subscribe, they still convert better than someone never contacted. Prior contact history is probably the single most predictive feature for targeting.
-
-**Education level breakdown** — university degree holders convert at the highest rate, though illiterate clients (very small group) also show a high rate which is probably just noise from small sample size.
+Breakdowns computed:
+- Subscription rate by job type
+- Monthly contact volume and conversion rate
+- Conversion by age group
+- Impact of previous campaign outcome
+- Conversion by education level
 
 ---
 
 ## Excel dashboard
 
-The `.xlsx` file in `05_output/` has three sheets:
+The `.xlsx` file has five sheets and all formulas are live — nothing is hardcoded.
 
-**Executive Summary** — the main dashboard sheet. Has KPI cards at the top (total contacts, subscriptions, conversion rate, avg age, avg call duration), then a full subscription-by-job table with conditional colour formatting on the conversion rate column, and a monthly trend table below that. Two charts sit to the right — a horizontal bar chart for job-level conversion rates and a line chart for the monthly trend.
+**Raw Data** — all 4,119 clean rows with auto-filter. Every formula on the other sheets pulls from this.
 
-**Segment Analysis** — deeper breakdown by age group, education level, and previous campaign outcome. Data bars on the conversion rate column so you can scan it quickly. Charts stacked below the tables.
+**Lookup Tables** — `COUNTIFS` and `AVERAGEIFS` formulas that aggregate the raw data by job, month, age group, and previous outcome. This is the calculation layer.
 
-**Clean Data** — the first 500 rows of the cleaned dataset with auto-filter enabled. Mostly there so someone opening the file can see what the data actually looks like.
+**Executive Dashboard** — KPI cards using `COUNTA`, `COUNTIF`, `IFERROR`. Summary tables reference Lookup Tables via cross-sheet formulas. Includes a `RANK` column showing each job's position in the conversion league table. Charts built on Lookup Tables data ranges.
 
-Everything is formatted — colours, borders, header styles. I built it with `openpyxl` in Python rather than manually, which means it's reproducible and the formatting is consistent throughout.
+**Segment Analysis** — age group, previous outcome, and education breakdowns. Directly references Lookup Tables. Includes a "vs overall average" column using cross-sheet subtraction.
+
+**Formula Guide** — documents every formula type used in the workbook with plain English explanations and examples. Useful if you want to extend the analysis or understand how something works.
 
 ---
 
 ## Key findings
 
-- Previous successful contact is the strongest predictor of conversion — far more than demographics
-- May is the highest-volume month but not the best month to call. March, September, October, and December outperform on rate
-- Students and retirees over-index on subscriptions relative to their share of contacts
-- Clients with no prior contact history are the hardest to convert
+- Previous successful campaign contact is the strongest conversion signal — those clients convert at 4-5x the baseline rate
+- May has the highest contact volume but not the best conversion rate. March, September, and December outperform on rate
+- Students and retirees convert well above their contact share
+- Call duration correlates strongly with subscription — but it's leakage, so this can't be used predictively
 
 ---
 
-## Files in this folder
+## Files
 
 ```
 01_data/
-    bank_marketing_raw.csv         raw dataset with nulls, duplicates, unknowns
+    bank_marketing_raw.csv          raw dataset — nulls, duplicates, unknown values intact
 
 02_cleaning/
-    build_all.py                   cleaning + SQL + Excel builder in one script
-    bank_marketing_clean.csv       output after cleaning
-
-03_sql/
-    bank_marketing.db              SQLite database
+    build_all.py                    cleaning + aggregation + Excel builder in one script
+    rebuild_excel.py                standalone Excel rebuild script (formula-based version)
+    bank_marketing_clean.csv        clean output — load into Power BI or any other tool
 
 05_output/
-    bank_marketing_dashboard.xlsx  Excel dashboard — open in Excel or Google Sheets
+    bank_marketing_dashboard.xlsx   Excel workbook with live formulas across 5 sheets
 ```
 
 ---
@@ -123,4 +132,4 @@ cd 02_Bank_Marketing_Analysis
 python3 02_cleaning/build_all.py
 ```
 
-Then open `05_output/bank_marketing_dashboard.xlsx`.
+Then open `05_output/bank_marketing_dashboard.xlsx` in Excel or Google Sheets.

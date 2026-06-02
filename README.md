@@ -12,7 +12,6 @@ I put this portfolio together to show what I can actually do with data, since I 
 
 | # | Project | Industry | Tools |
 |---|---------|----------|-------|
-| 1 | [Heart Disease Risk Analysis](./01_Heart_Disease_Risk_Analysis/) | Healthcare | Python, pandas, scikit-learn, Power BI |
 | 2 | [Bank Marketing Campaign Analysis](./02_Bank_Marketing_Analysis/) | Finance / Banking | Python, pandas, Excel |
 | 3 | [E-Commerce Performance Analysis](./03_Ecommerce_Performance_Analysis/) | Retail / E-Commerce | R, ggplot2, dplyr |
 
